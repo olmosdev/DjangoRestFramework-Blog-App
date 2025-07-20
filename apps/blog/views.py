@@ -1,5 +1,6 @@
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
+from rest_framework_api.views import StandardAPIView
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, APIException
@@ -22,7 +23,7 @@ redis_client = redis.StrictRedis(host=settings.REDIS_HOST, port=6379, db=0)
     queryset = Post.postobjects.all()
     serializer_class = PostListSerializer"""
 
-class PostListView(APIView): # APIWiew allows us to have more control over our views
+class PostListView(StandardAPIView): # APIWiew allows us to have more control over our views
     permission_classes = [HasValidAPIKey]
 
     # @method_decorator(cache_page(60 * 1)) Not recommended when you have a complex logic
@@ -34,7 +35,7 @@ class PostListView(APIView): # APIWiew allows us to have more control over our v
                 # Increasing impressions in Redis for cached post
                 for post in cached_posts:
                     redis_client.incr(f"post:impressions:{post["id"]}")
-                return Response(cached_posts)
+                return self.paginate(request, cached_posts)
 
             # Getting post from database if data is not in cache
             posts = Post.postobjects.all()
@@ -58,25 +59,22 @@ class PostListView(APIView): # APIWiew allows us to have more control over our v
         except Exception as e:
             raise APIException(detail=f"An unexpected error ocurred: {str(e)}")
 
-        return Response(serialized_posts)
+        return self.paginate(request, serialized_posts)
 
-"""class PostDetailView(RetrieveAPIView):
-    queryset = Post.postobjects.all()
-    serializer_class = PostSerializer
-    lookup_field = "slug"""
-
-class PostDetailView(RetrieveAPIView):
+class PostDetailView(StandardAPIView):
     permission_classes = [HasValidAPIKey]
 
-    def get(self, request, slug):
+    def get(self, request):
         ip_address = get_client_ip(request)
+
+        slug = request.query_params.get("slug")
 
         try:
             # Checking if the data is in cache
             cached_post = cache.get(f"post_detail:{slug}")
             if cached_post:
                 increment_post_views_task.delay(cached_post["slug"], ip_address)
-                return Response(cached_post)
+                return self.response(cached_post)
 
             # If data is not in cahce, get data from database
             post = Post.postobjects.get(slug=slug)
@@ -92,18 +90,24 @@ class PostDetailView(RetrieveAPIView):
         except Exception as e:
             raise APIException(detail=f"An unexpected error ocurred: {str(e)}")
 
-        return Response(serialized_post)
+        return self.response(serialized_post)
 
-class PostHeadingsView(ListAPIView):
+class PostHeadingsView(StandardAPIView):
     permission_classes = [HasValidAPIKey]
 
-    serializer_class = HeadingSerializer
+    def get(self, request):
+        post_slug = request.query_params.get("slug")
+        heading_objects = Heading.objects.filter(post__slug = post_slug)
+        serialized_data = HeadingSerializer(heading_objects, many=True).data
+        return self.response(serialized_data)
+
+    """serializer_class = HeadingSerializer
     
     def get_queryset(self):
         post_slug = self.kwargs.get("slug")
-        return Heading.objects.filter(post__slug=post_slug)
+        return Heading.objects.filter(post__slug=post_slug)"""
 
-class IncrementPostClickView(APIView):
+class IncrementPostClickView(StandardAPIView):
     permission_classes = [HasValidAPIKey]
 
     permission_classes = [permissions.AllowAny]
@@ -121,7 +125,7 @@ class IncrementPostClickView(APIView):
         except Exception as e:
             raise APIException(detail=f"An error ocurred while updating post analytics")
 
-        return Response({
+        return self.response({
             "message": "Click incremented successfully",
             "clicks": post_analytics.clicks
         })
