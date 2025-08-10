@@ -1,10 +1,12 @@
 from django.contrib import admin
+
 from.models import Category, Post, Heading, PostAnalytics
+from apps.mymedia.models import MyMedia
 
 # Register your models here.
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "title", "parent", "slug")
+    list_display = ("name", "title", "parent", "slug", "thumbnail_preview")
     search_fields = ("name", "title", "description", "slug")
     prepopulated_fields = {"slug": ("name",)}
     list_filter = ("parent",)
@@ -26,7 +28,7 @@ class HeadingInLine(admin.TabularInline):
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
 
-    list_display = ("title", "status", "category", "created_at", "updated_at")
+    list_display = ("title", "status", "category", "created_at", "updated_at", "thumbnail_preview")
     search_fields = ("title", "description", "content", "keywods", "slug")
     prepopulated_fields = {"slug": ("title",)}
     list_filter = ("status", "category", "updated_at")
@@ -43,7 +45,7 @@ class PostAdmin(admin.ModelAdmin):
         }),
     )
 
-    inlines = [HeadingInLine,]
+    inlines = [HeadingInLine]
 
 """@admin.register(Heading)
 class HeadingAdmin(admin.ModelAdmin):

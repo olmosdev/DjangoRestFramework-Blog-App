@@ -47,6 +47,7 @@ DJANGO_APPS = [
 
 PROJECT_APPS = [
     'apps.blog',
+    'apps.mymedia',
 ]
 
 THIRD_PARTY_APPS = [
@@ -57,6 +58,7 @@ THIRD_PARTY_APPS = [
     'ckeditor_uploader',
     'django_celery_results',
     'django_celery_beat',
+    'storages',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS
@@ -150,11 +152,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_LOCATION = "static"
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
-MEDIA_URL = 'media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# STATIC_LOCATION = "static"
+# STATIC_URL = 'static/'
+# STATIC_ROOT = os.path.join(BASE_DIR, "static")
+# MEDIA_URL = 'media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -214,3 +216,53 @@ CELERY_IMPORTS = (
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_BEAT_SCHEDULE = {}
+
+# AWS CloudFront Credentials
+AWS_CLOUDFRONT_DOMAIN=env("AWS_CLOUDFRONT_DOMAIN")
+AWS_CLOUDFRONT_KEY_ID=env.str("AWS_CLOUDFRONT_KEY_ID").strip()
+AWS_CLOUDFRONT_KEY=env.str("AWS_CLOUDFRONT_KEY", multiline=True).encode("ascii").strip()
+
+# AWS S3 Credentials
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
+# AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+AWS_S3_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+AWS_S3_CUSTOM_DOMAIN = AWS_CLOUDFRONT_DOMAIN
+
+# Security and permissions settings
+AWS_QUERYSTRING_AUTH = False # Disable signatures on URLs (public files)
+AWS_FILE_OVERWRITE = False # Avoid overwriting files with the same name (it will assign another name)
+AWS_DEFAULT_ACL = None # Defines the default access control as public
+AWS_QUERYSTRING_EXPIRE = 5 # Expiration time of signed URLs
+
+# Extra params for S3 objects
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age-86400" # Enables caching for one day
+}
+
+# Static file settings
+STATIC_LOCATION = "static"
+STATIC_URL = f"{AWS_S3_DOMAIN}/{STATIC_LOCATION}/"
+# Custom Bucket for static files
+STATICFILES_STORAGE = "core.storage_backends.StaticStorage"
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# Media file settings
+MEDIA_LOCATION = "media"
+MEDIA_URL = f"{AWS_S3_CUSTOM_DOMAIN}/{MEDIA_LOCATION}/"
+MEDIA_ROOT = MEDIA_URL
+
+# Default storage settings
+# DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+DEFAULT_FILE_STORAGE = "core.storage_backends.PublicMediaStorage"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "core.storage_backends.PublicMediaStorage"
+    },
+    "staticfiles": {
+        "BACKEND": "core.storage_backends.StaticStorage"
+    }
+}

@@ -1,4 +1,4 @@
-    Django==5.2.1
+Django==5.2.1
 djangorestframework==3.16.0
 djangorestframework-api-response==0.1.0
 django-redis==5.4.0
@@ -19,3 +19,9 @@ psycopg2==2.9.4
 celery==5.5.3
 django-celery-results==2.6.0
 django-celery-beat==2.8.1
+
+django-storages==1.14.6
+boto3==1.39.9
+botocore==1.39.9
+cryptography==45.0.5
+rsa==4.9

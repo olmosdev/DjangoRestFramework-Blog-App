@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Post, Category, Heading, PostView
+from apps.mymedia.serializers import MyMediaSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,6 +31,7 @@ class PostSerializer(serializers.ModelSerializer):
     category = CategorySerializer() 
     headings = HeadingSerializer(many=True)
     view_count = serializers.SerializerMethodField()
+    thumbnail = MyMediaSerializer()
     
     class Meta:
         model = Post
@@ -41,6 +43,7 @@ class PostSerializer(serializers.ModelSerializer):
 class PostListSerializer(serializers.ModelSerializer):
     category = CategoryListSerializer() # To display the category name instead of the category id
     view_count = serializers.SerializerMethodField()
+    thumbnail = MyMediaSerializer()
 
     class Meta:
         model = Post
